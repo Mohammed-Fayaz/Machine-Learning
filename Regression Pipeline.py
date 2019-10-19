@@ -1,3 +1,7 @@
+"""
+Inspired by https://www.kaggle.com/serigne/stacked-regressions-top-4-on-leaderboard/notebook
+"""
+
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
