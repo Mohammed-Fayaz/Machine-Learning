@@ -61,6 +61,27 @@ def make_model(models):
     return AveragingModels(models=models)
 
 
+class DataFrameImputer(TransformerMixin):
+
+    def __init__(self):
+        """Impute missing values.
+
+        Columns of dtype object are imputed with the most frequent value
+        in column.
+
+        Columns of other types are imputed with mean of column.
+
+        """
+    def fit(self, X, y=None):
+        self.fill = pd.Series([X[c].value_counts().index[0]
+            if X[c].dtype == np.dtype('O') else X[c].mean() for c in X],
+            index=X.columns)
+        return self
+
+    def transform(self, X, y=None):
+        return X.fillna(self.fill)
+
+
 def read(train_path, test_path):
     """
     Returns the datasets with some preprocessing
@@ -73,17 +94,15 @@ def read(train_path, test_path):
 
     train_labels = train_dataset.pop()
 
-    train_dataset.dropna(axis='columns')
-    test_dataset.dropna(axis='columns')
+    imputer = DataFrameImputer().fit(train_dataset)
+    train_dataset = imputer.transform(train_dataset)
+    test_dataset = imputer.transform(test_dataset)
 
-    train_dataset.columns.difference(test_dataset.columns)
-    test_dataset.columns.difference(test_dataset.columns)
+    train_dataset = pd.get_dummies(train_dataset)
+    test_dataset = pd.get_dummies(test_dataset)
 
-    train_dataset = pd.get_dummies()
-    test_dataset = pd.get_dummies()
-
-    train_dataset.columns.difference(test_dataset.columns)
-    test_dataset.columns.difference(test_dataset.columns)
+    train_dataset = train_dataset.drop(train_dataset.columns.difference(test_dataset.columns))
+    test_dataset = test_dataset.drop(test_dataset.columns.difference(test_dataset.columns))
 
     scaler = StandardScaler().fit(train_dataset)
     train_dataset = scaler.transform(train_dataset)
