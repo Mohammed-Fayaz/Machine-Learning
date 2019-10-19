@@ -17,6 +17,10 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 
 
 class AveragingModels(BaseEstimator, RegressorMixin, TransformerMixin):
+    """
+    Class to stack models
+    """
+
     def __init__(self, models):
         self.models_ = [clone(x) for x in self.models]
         self.models = models
@@ -47,4 +51,89 @@ GBoost = GradientBoostingRegressor(n_estimators=3000, learning_rate=0.05,
                                    min_samples_leaf=15, min_samples_split=10,
                                    loss='huber', random_state=5)
 
-averaged_models = AveragingModels(models=(ENet, GBoost, KRR, lasso, model_xgb, model_lgb))
+
+def make_model(models):
+    """
+    Stacks models and returns the average of individual predictions
+    :param models: a list of models to stack
+    :return: the stacked model
+    """
+    return AveragingModels(models=models)
+
+
+def read(train_path, test_path):
+    """
+    Returns the datasets with some preprocessing
+    :param train_path: path to the training data
+    :param test_path: path to the testing data
+    :return: X_train, y_train and X_test
+    """
+    train_dataset = pd.read_csv(train_path)
+    test_dataset = pd.read_csv(test_path)
+
+    train_labels = train_dataset.pop()
+
+    train_dataset.dropna(axis='columns')
+    test_dataset.dropna(axis='columns')
+
+    train_dataset.columns.difference(test_dataset.columns)
+    test_dataset.columns.difference(test_dataset.columns)
+
+    train_dataset = pd.get_dummies()
+    test_dataset = pd.get_dummies()
+
+    train_dataset.columns.difference(test_dataset.columns)
+    test_dataset.columns.difference(test_dataset.columns)
+
+    scaler = StandardScaler().fit(train_dataset)
+    train_dataset = scaler.transform(train_dataset)
+    test_dataset = scaler.transform(test_dataset)
+
+    return train_dataset, train_labels, test_dataset
+
+
+def preprocess(train_dataset, test_dataset):
+    """
+    Uses PCA to perform dimensionality reduction
+    :param train_dataset: the training set
+    :param test_dataset: the testing set
+    :return: the scaled down training and testing set
+    """
+    pca = PCA(n_components=20)
+    pca.fit(train_dataset)
+    train_dataset = pca.transform(train_dataset)
+    test_dataset = pca.transform(test_dataset)
+    return train_dataset, test_dataset
+
+
+def fit_model(train_dataset, train_labels):
+    """
+    Trains the model on the dataset
+    :param train_dataset: the training set
+    :param train_labels: the training labels
+    :return: the trained model
+    """
+    model = make_model()
+    model.fit(train_dataset, train_labels)
+    return model
+
+
+def predict(model, test_dataset):
+    """
+    Returns the predictions
+    :param model: the trained model
+    :param test_dataset: the testing data
+    :return: predictions
+    """
+    return model.predict(test_dataset)
+
+
+def print_metrics(predictions, y_train):
+    """
+    Prints metrics
+    :param predictions: the predicted labels
+    :param y_train: the true labels
+    :return: None
+    """
+    print('Mean Absolute Error %.2f' % mean_absolute_error(predictions, y_train))
+    print('Mean Squared Error %.2f' % mean_squared_error(predictions, y_train))
