@@ -12,11 +12,15 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import ElasticNet, Lasso
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, RobustScaler
 
 
 class AveragingModels(BaseEstimator, RegressorMixin, TransformerMixin):
+    """
+    Averages the models
+    """
     def __init__(self, models):
         self.models = models
         self.models_ = None
@@ -34,6 +38,51 @@ class AveragingModels(BaseEstimator, RegressorMixin, TransformerMixin):
             model.predict(X) for model in self.models_
         ])
         return np.mean(predictions, axis=1)
+
+
+class StackingAveragedModels(BaseEstimator, RegressorMixin, TransformerMixin):
+    """
+    A more sophisticated averaging approach
+    1) Split the training set into two sets
+    2) Train several base models on the first part
+    3) Test the remaining on the second part
+    4) Use predictions from 3 to train a higher level learner (called a meta-model)
+    """
+    def __init__(self, base_models, meta_model, n_folds=5):
+        self.base_models = base_models
+        self.meta_model = meta_model
+        self.base_models_ = None
+        self.meta_model_ = None
+        self.n_folds = n_folds
+
+    # We again fit the data on clones of the original models
+    def fit(self, X, y):
+        self.base_models_ = [list() for x in self.base_models]
+        self.meta_model_ = clone(self.meta_model)
+        kfold = KFold(n_splits=self.n_folds, shuffle=True, random_state=156)
+
+        # Train cloned base models then create out-of-fold predictions
+        # that are needed to train the cloned meta-model
+        out_of_fold_predictions = np.zeros((X.shape[0], len(self.base_models)))
+        for i, model in enumerate(self.base_models):
+            for train_index, holdout_index in kfold.split(X, y):
+                instance = clone(model)
+                self.base_models_[i].append(instance)
+                instance.fit(X[train_index], y[train_index])
+                y_pred = instance.predict(X[holdout_index])
+                out_of_fold_predictions[holdout_index, i] = y_pred
+
+        # Now train the cloned  meta-model using the out-of-fold predictions as new feature
+        self.meta_model_.fit(out_of_fold_predictions, y)
+        return self
+
+    # Do the predictions of all base models on the test data and use the averaged predictions as
+    # meta-features for the final prediction which is done by the meta-model
+    def predict(self, X):
+        meta_features = np.column_stack([
+            np.column_stack([model.predict(X) for model in base_models]).mean(axis=1)
+            for base_models in self.base_models_])
+        return self.meta_model_.predict(meta_features)
 
 
 def get_models():
@@ -55,7 +104,8 @@ def make_model(models):
     :param models: a list of models to stack
     :return: the stacked model
     """
-    return AveragingModels(models=models)
+    model_xgb, model_lgb, lasso, ENet, KRR, GBoost = get_models()
+    return StackingAveragedModels(base_models=(model_xgb, model_lgb), meta_model=lasso)
 
 
 class DataFrameImputer(TransformerMixin):
