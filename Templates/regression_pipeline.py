@@ -21,7 +21,6 @@ class AveragingModels(BaseEstimator, RegressorMixin, TransformerMixin):
         self.models = models
         self.models_ = None
 
-    # we define clones of the original models to fit the data in
     def fit(self, X, y):
         self.models_ = [clone(x) for x in self.models]
 
