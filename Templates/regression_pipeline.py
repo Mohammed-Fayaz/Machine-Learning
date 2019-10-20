@@ -19,6 +19,7 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 class AveragingModels(BaseEstimator, RegressorMixin, TransformerMixin):
     def __init__(self, models):
         self.models = models
+        self.models_ = None
 
     # we define clones of the original models to fit the data in
     def fit(self, X, y):
@@ -38,15 +39,17 @@ class AveragingModels(BaseEstimator, RegressorMixin, TransformerMixin):
         return np.mean(predictions, axis=1)
 
 
-model_xgb = xgb.XGBRegressor()
-model_lgb = lgb.LGBMRegressor()
-lasso = make_pipeline(RobustScaler(), Lasso(alpha=0.0005, random_state=1))
-ENet = make_pipeline(RobustScaler(), ElasticNet(alpha=0.0005, l1_ratio=.9, random_state=3))
-KRR = KernelRidge(alpha=0.6, kernel='polynomial', degree=2, coef0=2.5)
-GBoost = GradientBoostingRegressor(n_estimators=3000, learning_rate=0.05,
-                                   max_depth=4, max_features='sqrt',
-                                   min_samples_leaf=15, min_samples_split=10,
-                                   loss='huber', random_state=5)
+def get_models():
+    model_xgb = xgb.XGBRegressor()
+    model_lgb = lgb.LGBMRegressor()
+    lasso = make_pipeline(RobustScaler(), Lasso(alpha=0.0005, random_state=1))
+    ENet = make_pipeline(RobustScaler(), ElasticNet(alpha=0.0005, l1_ratio=.9, random_state=3))
+    KRR = KernelRidge(alpha=0.6, kernel='polynomial', degree=2, coef0=2.5)
+    GBoost = GradientBoostingRegressor(n_estimators=3000, learning_rate=0.05,
+                                       max_depth=4, max_features='sqrt',
+                                       min_samples_leaf=15, min_samples_split=10,
+                                       loss='huber', random_state=5)
+    return model_xgb, model_lgb, lasso, ENet, KRR, GBoost
 
 
 def make_model(models):
@@ -130,7 +133,7 @@ def fit_model(train_dataset, train_labels):
     :param train_labels: the training labels
     :return: the trained model
     """
-    model = make_model()
+    model = make_model(get_models())
     model.fit(train_dataset, train_labels)
     return model
 
