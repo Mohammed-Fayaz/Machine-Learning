@@ -1,4 +1,5 @@
 import unittest
+
 from Templates import regression_pipeline
 
 
@@ -17,7 +18,6 @@ class TestRead(unittest.TestCase):
     def test_if_read_works_alright(self):
         X_train, y_train, X_test = regression_pipeline.read(train_path=self.TRAIN_PATH, test_path=self.TEST_PATH,
                                                             label_name='d')
-
 
 
 if __name__ == '__main__':
