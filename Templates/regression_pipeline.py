@@ -154,3 +154,11 @@ def print_metrics(predictions, y_train):
     """
     print('Mean Absolute Error %.2f' % mean_absolute_error(predictions, y_train))
     print('Mean Squared Error %.2f' % mean_squared_error(predictions, y_train))
+
+
+def main():
+    pass
+
+
+if __name__ == '__main__':
+    main()
