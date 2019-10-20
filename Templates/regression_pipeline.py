@@ -149,8 +149,8 @@ def read(train_path, test_path, label_name):
     train_dataset = pd.get_dummies(train_dataset)
     test_dataset = pd.get_dummies(test_dataset)
 
-    train_dataset = train_dataset.drop(train_dataset.columns.difference(test_dataset.columns))
-    test_dataset = test_dataset.drop(test_dataset.columns.difference(train_dataset.columns))
+    train_dataset = train_dataset.drop(train_dataset.columns.difference(test_dataset.columns), axis=1)
+    test_dataset = test_dataset.drop(test_dataset.columns.difference(train_dataset.columns), axis=1)
 
     scaler = StandardScaler().fit(train_dataset)
     train_dataset = scaler.transform(train_dataset)
