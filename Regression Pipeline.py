@@ -99,7 +99,7 @@ def read(train_path, test_path):
     test_dataset = pd.get_dummies(test_dataset)
 
     train_dataset = train_dataset.drop(train_dataset.columns.difference(test_dataset.columns))
-    test_dataset = test_dataset.drop(test_dataset.columns.difference(test_dataset.columns))
+    test_dataset = test_dataset.drop(test_dataset.columns.difference(train_dataset.columns))
 
     scaler = StandardScaler().fit(train_dataset)
     train_dataset = scaler.transform(train_dataset)
