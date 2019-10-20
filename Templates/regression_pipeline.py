@@ -80,7 +80,7 @@ class DataFrameImputer(TransformerMixin):
         return X.fillna(self.fill)
 
 
-def read(train_path, test_path):
+def read(train_path, test_path, label_name):
     """
     Returns the datasets with some preprocessing
     :param train_path: path to the training data
@@ -90,7 +90,7 @@ def read(train_path, test_path):
     train_dataset = pd.read_csv(train_path)
     test_dataset = pd.read_csv(test_path)
 
-    train_labels = train_dataset.pop()
+    train_labels = train_dataset.pop(label_name)
 
     imputer = DataFrameImputer().fit(train_dataset)
     train_dataset = imputer.transform(train_dataset)
